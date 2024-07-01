@@ -1,0 +1,10 @@
+---
+- name: Install Docker
+  apt:
+    name: docker.io
+    state: present
+
+- name: Run Prometheus exporter in Docker
+  become: true
+  command: "sudo docker run -d -p 9255:9255 prometheuscommunity/stackdriver-exporter --google.project-id elevated-apex-403206 --monitoring.metrics-type-prefixes appengine.googleapis.com/instance --log.level=debug"
+

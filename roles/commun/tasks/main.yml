@@ -1,0 +1,78 @@
+---   
+- name: Create CRI-O config file
+  file:
+    path: "/etc/modules-load.d/crio.conf"
+    state: "touch"
+
+- name: add modules in conf file
+  blockinfile:
+    path: "/etc/modules-load.d/crio.conf"
+    block: |
+          overlay
+          br_netfilter
+
+- name: Enable sysctl params
+  file:
+    path: "/etc/sysctl.d/99-kubernetes-cri.conf"
+    state: "touch"
+
+- name: add configuration
+  blockinfile:
+    path: "/etc/sysctl.d/99-kubernetes-cri.conf"
+    block: |
+          net.bridge.bridge-nf-call-iptables = 1
+          net.ipv4.ip_forward = 1
+          net.bridge.bridge-nf-call-ip6tables = 1
+
+- name: enable overlayFS & VxLan pod communication
+  shell: |
+          sudo modprobe overlay
+          sudo modprobe br_netfilter
+
+- name: Reload parameters
+  command: sudo sysctl --system
+
+- name: disable swap
+  shell: |
+      sudo swapoff -a
+      sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+
+- name: enable cri-repo
+  environment:
+    OS: xUbuntu_20.04
+    VERSION: 1.23
+  shell: |
+          echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+          echo "deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.list
+
+          curl -L https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/Release.key | apt-key add -
+          curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | apt-key add -
+
+- name: Install cri-o and cri-o tools
+  shell: |
+          sudo apt-get update
+          sudo apt-get install cri-o cri-o-runc cri-tools -y
+          sudo systemctl daemon-reload
+          sudo systemctl enable crio --now
+
+- name: Install dependencies
+  shell: |
+          sudo apt-get update
+          sudo apt-get install -y apt-transport-https curl
+          curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+- name: Create kubernetes repo file
+  file:
+    path: "/etc/apt/sources.list.d/kubernetes.list"
+    state: "touch"
+
+- name: Add K8s Source
+  blockinfile:
+    path: "/etc/apt/sources.list.d/kubernetes.list"
+    block: |
+           deb https://apt.kubernetes.io/ kubernetes-xenial main
+
+- name: install kubernetes
+  shell: |
+          sudo apt-get update
+          sudo apt-get install -y kubelet=1.23.1-00 kubeadm=1.23.1-00 kubectl=1.23.1-00
+          sudo apt-mark hold kubelet kubeadm kubectl

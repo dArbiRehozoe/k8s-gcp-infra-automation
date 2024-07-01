@@ -1,0 +1,36 @@
+---
+- name: Create and config User
+  hosts: label_environment_nodeworker:label_environment_nodemaster
+  become: yes
+  roles:
+    - role: userk8sconfig
+
+- name: Install docker and dependence for k8s
+  hosts: all
+  become: yes
+  become_user: root
+  gather_facts: yes
+  roles:
+    - role: commun
+
+- name: configure node master  
+  hosts:  label_environment_nodemaster
+  become: yes
+  roles:
+    - role: nodemaster
+
+- name: configure node master     
+  hosts:  label_environment_nodeworker
+  become: yes
+  gather_facts: yes
+  roles:
+    - role: nodeworker
+     
+
+- name: deploy apps
+  hosts: label_environment_nodemaster
+  become: yes
+  tasks:
+  roles:
+    - role: deploye_app
+        

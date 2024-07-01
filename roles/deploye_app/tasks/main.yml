@@ -1,0 +1,39 @@
+--- 
+- name: Allow Local Workloads
+  become: false
+  become_user: k8sadmin
+  command: kubectl taint nodes --all node-role.kubernetes.io/master-
+  environment:
+    KUBECONFIG: "/home/k8sadmin/.kube/config"
+  ignore_errors: true
+
+- name: Ajouter le repository Helm d'Ingress-Nginx
+  become: false
+  become_user: k8sadmin
+  command: helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+
+- name: Mettre à jour les repositories Helm
+  become_user: k8sadmin
+  become: false
+  command: helm repo update
+
+- name: Installer Ingress-Nginx avec Helm
+  become_user: k8sadmin
+  command: helm install ingress-nginx ingress-nginx/ingress-nginx --create-namespace --namespace ingress-nginx --set controller.hostNetwork=true
+  become: false
+  environment:
+    KUBECONFIG: "/home/k8sadmin/.kube/config"
+
+
+- name: Copy dapic.yml to the master node
+  copy:
+    src: dapic.yml  # Spécifiez le chemin local de votre fichier nginx.yml
+    dest: /home/k8sadmin/dapic.yml
+    owner: k8sadmin
+
+- name: Apply dapic.yml
+  shell: kubectl apply -f /home/k8sadmin/dapic.yml
+  environment:
+    KUBECONFIG: "/home/k8sadmin/.kube/config"
+
+

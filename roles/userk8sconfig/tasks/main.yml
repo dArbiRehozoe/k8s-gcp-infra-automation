@@ -1,0 +1,19 @@
+---
+- name: create the 'k8sadmin' user
+  user:
+    name: k8sadmin
+    append: yes
+    state: present
+    createhome: yes
+    shell: /bin/bash
+
+- name: allow 'k8sadmin' sudo permission
+  lineinfile:
+    dest: /etc/sudoers
+    line: 'k8sadmin ALL=(ALL) NOPASSWD: ALL'
+    validate: 'visudo -cf %s'
+
+- name: set authorized keys for the k8sadmin user
+  authorized_key:
+    user: k8sadmin
+    key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
