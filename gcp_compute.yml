@@ -2,7 +2,7 @@ plugin: gcp_compute
 zones: # populate inventory with instances in these regions
   - us-east1-b
 projects:
-  - elevated-apex-403206
+  - your_project_gcp
 service_account_file: ./service_account.json
 auth_kind: serviceaccount
 keyed_groups:
